@@ -1,6 +1,10 @@
-# IATA.BarCodedBoardingPass
+#  [![](https://raw.githubusercontent.com/adamfisher/IATA.BarCodedBoardingPass/main/IATA.BarcodedBoardingPass/iata_logo.png)](#) WaveApps.GraphQLBuilder IATA.BarCodedBoardingPass
+
+[![Nuget](https://img.shields.io/nuget/dt/IATA.BarCodedBoardingPass?color=blue&label=nuget&style=plastic)](https://www.nuget.org/packages/IATA.BarCodedBoardingPass)
 
 A C# parser for International Air Transport Association (IATA) barcodes from a passenger boarding pass.
+
+⚠️ Based on BCBP(BAR CODE BOARDING PASS)- [BCBP-Implementation-Guide-5th-Edition-June-2016](https://www.iata.org/contentassets/1dccc9ed041b4f3bbdcf8ee8682e75c4/2021_03_02-bcbp-implementation-guide-version-7-.pdf)
 
 **Ported from [menepet/iata-barcode-js-parser](https://github.com/menepet/iata-barcode-js-parser).**
 
