@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+
+    <PackageId>IATA.BarCodedBoardingPass</PackageId>
+    <Version>2016.06</Version>
+    <Authors>Adam Fisher</Authors>
+    <Description>A parser for International Air Transport Association (IATA) barcodes from a passenger boarding pass.</Description>
+    <PackageProjectUrl>https://github.com/adamfisher/IATA.BarCodedBoardingPass</PackageProjectUrl>
+    <PackageIcon>iata_logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>iata;iata boarding pass;bcbp;boarding pass</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="iata_logo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
