@@ -1,4 +1,4 @@
-#  [![](https://raw.githubusercontent.com/adamfisher/IATA.BarCodedBoardingPass/main/IATA.BarcodedBoardingPass/iata_logo.png)](#) WaveApps.GraphQLBuilder IATA.BarCodedBoardingPass
+#  [![](https://raw.githubusercontent.com/adamfisher/IATA.BarCodedBoardingPass/main/IATA.BarcodedBoardingPass/iata_logo.png)](#) IATA.BarCodedBoardingPass
 
 [![Nuget](https://img.shields.io/nuget/dt/IATA.BarCodedBoardingPass?color=blue&label=nuget&style=plastic)](https://www.nuget.org/packages/IATA.BarCodedBoardingPass)
 
