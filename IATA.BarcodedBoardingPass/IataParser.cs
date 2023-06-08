@@ -136,190 +136,192 @@ public static class IataParser
                 continue;
             }
 
+            var value = entry.Value?.Trim();
+
             switch (key)
             {
                 case "BEGINNING_OF_MANDATORY_FIELDS":
-                    data.BeginningOfMandatoryFields = entry.Value;
+                    data.BeginningOfMandatoryFields = value;
                     break;
                 case "FORMAT_CODE":
-                    data.FormatCode = entry.Value;
+                    data.FormatCode = value;
                     break;
                 case "NUMBER_OF_SEGMENTS":
-                    data.NumberOfSegments = entry.Value;
+                    data.NumberOfSegments = value;
                     break;
                 case "PASSENGER_NAME":
-                    data.PassengerName = entry.Value;
+                    data.PassengerName = value;
                     break;
                 case "ELECTRONIC_TICKET_INDICATOR":
-                    data.ElectronicTicketIndicator = entry.Value;
+                    data.ElectronicTicketIndicator = value;
                     break;
                 case "OPERATING_CARRIER_PNR_CODE":
-                    data.OperatingCarrierPnrCode = entry.Value;
+                    data.OperatingCarrierPnrCode = value;
                     break;
                 case "FROM_CITY_AIRPORT_CODE":
-                    data.FromCityAirportCode = entry.Value;
+                    data.FromCityAirportCode = value;
                     break;
                 case "TO_CITY_AIRPORT_CODE":
-                    data.ToCityAirportCode = entry.Value;
+                    data.ToCityAirportCode = value;
                     break;
                 case "OPERATING_CARRIER_DESIGNATOR":
-                    data.OperatingCarrierDesignator = entry.Value;
+                    data.OperatingCarrierDesignator = value;
                     break;
                 case "FLIGHT_NUMBER":
-                    data.FlightNumber = entry.Value;
+                    data.FlightNumber = value;
                     break;
                 case "DATE_OF_FLIGHT":
-                    data.DateOfFlight = entry.Value;
+                    data.DateOfFlight = value;
                     break;
                 case "COMPARTMENT_CODE":
-                    data.CompartmentCode = entry.Value;
+                    data.CompartmentCode = value;
                     break;
                 case "SEAT_NUMBER":
-                    data.SeatNumber = entry.Value;
+                    data.SeatNumber = value;
                     break;
                 case "CHECK_IN_SEQUENCE_NUMBER":
-                    data.CheckInSequenceNumber = entry.Value;
+                    data.CheckInSequenceNumber = value;
                     break;
                 case "PASSENGER_STATUS":
-                    data.PassengerStatus = entry.Value;
+                    data.PassengerStatus = value;
                     break;
                 case "CONDITIONALS_SIZE":
-                    data.ConditionalsSize = entry.Value;
+                    data.ConditionalsSize = value;
                     break;
                 case "BEGINNING_OF_VERSION_NUMBER":
-                    data.BeginningOfVersionNumber = entry.Value;
+                    data.BeginningOfVersionNumber = value;
                     break;
                 case "VERSION_NUMBER":
-                    data.VersionNumber = entry.Value;
+                    data.VersionNumber = value;
                     break;
                 case "UNIQUE_CONDITIONALS_SIZE":
-                    data.UniqueConditionalsSize = entry.Value;
+                    data.UniqueConditionalsSize = value;
                     break;
                 case "PASSENGER_DESCRIPTION":
-                    data.PassengerDescription = entry.Value;
+                    data.PassengerDescription = value;
                     break;
                 case "SOURCE_OF_CHECK_IN":
-                    data.SourceOfCheckIn = entry.Value;
+                    data.SourceOfCheckIn = value;
                     break;
                 case "SOURCE_OF_BOARDING_PASS_ISSUANCE":
-                    data.SourceOfBoardingPassIssuance = entry.Value;
+                    data.SourceOfBoardingPassIssuance = value;
                     break;
                 case "DATE_OF_PASS_ISSUANCE":
-                    data.DateOfPassIssuance = entry.Value;
+                    data.DateOfPassIssuance = value;
                     break;
                 case "DOCUMENT_TYPE":
-                    data.DocumentType = entry.Value;
+                    data.DocumentType = value;
                     break;
                 case "AIRLINE_DESIGNATOR_OF_ISSUER":
-                    data.AirlineDesignatorOfIssuer = entry.Value;
+                    data.AirlineDesignatorOfIssuer = value;
                     break;
                 case "BAGGAGE_TAG_LICENSE_PLATE":
-                    data.BaggageTagLicensePlate = entry.Value;
+                    data.BaggageTagLicensePlate = value;
                     break;
                 case "FIRST_BAGGAGE_TAG_LICENSE_PLATE":
-                    data.FirstBaggageTagLicensePlate = entry.Value;
+                    data.FirstBaggageTagLicensePlate = value;
                     break;
                 case "SECOND_BAGGAGE_TAG_LICENSE_PLATE":
-                    data.SecondBaggageTagLicensePlate = entry.Value;
+                    data.SecondBaggageTagLicensePlate = value;
                     break;
                 case "REPEATED_CONDITIONALS_SIZE":
-                    data.RepeatedConditionalsSize = entry.Value;
+                    data.RepeatedConditionalsSize = value;
                     break;
                 case "AIRLINE_NUMERIC_CODE":
-                    data.AirlineNumericCode = entry.Value;
+                    data.AirlineNumericCode = value;
                     break;
                 case "SERIAL_NUMBER":
-                    data.SerialNumber = entry.Value;
+                    data.SerialNumber = value;
                     break;
                 case "SELECTEE_INDICATOR":
-                    data.SelecteeIndicator = entry.Value;
+                    data.SelecteeIndicator = value;
                     break;
                 case "INTERNATIONAL_DOCUMENT_VERIFICATION":
-                    data.InternationalDocumentVerification = entry.Value;
+                    data.InternationalDocumentVerification = value;
                     break;
                 case "MARKETING_CARRIER_DESIGNATOR":
-                    data.MarketingCarrierDesignator = entry.Value;
+                    data.MarketingCarrierDesignator = value;
                     break;
                 case "FREQUENT_FLYER_AIRLINE_DESIGNATOR":
-                    data.FrequentFlyerAirlineDesignator = entry.Value;
+                    data.FrequentFlyerAirlineDesignator = value;
                     break;
                 case "FREQUENT_FLYER_NUMBER":
-                    data.FrequentFlyerNumber = entry.Value;
+                    data.FrequentFlyerNumber = value;
                     break;
                 case "ID_AD_INDICATOR":
-                    data.IdAdIndicator = entry.Value;
+                    data.IdAdIndicator = value;
                     break;
                 case "FREE_BAGGAGE_ALLOWANCE":
-                    data.FreeBaggageAllowance = entry.Value;
+                    data.FreeBaggageAllowance = value;
                     break;
                 case "FAST_TRACK":
-                    data.FastTrack = entry.Value;
+                    data.FastTrack = value;
                     break;
                 case "AIRLINE_DESIGNATOR_OF_SECOND_CARRIER":
-                    data.AirlineDesignatorOfSecondCarrier = entry.Value;
+                    data.AirlineDesignatorOfSecondCarrier = value;
                     break;
                 case "SECOND_CARRIER_DESIGNATOR_ACTION_CODE":
-                    data.SecondCarrierDesignatorActionCode = entry.Value;
+                    data.SecondCarrierDesignatorActionCode = value;
                     break;
                 case "SECOND_CARRIER_NUMBER":
-                    data.SecondCarrierNumber = entry.Value;
+                    data.SecondCarrierNumber = value;
                     break;
                 case "BOARDING_PASS_ISSUANCE_SOURCE":
-                    data.BoardingPassIssuanceSource = entry.Value;
+                    data.BoardingPassIssuanceSource = value;
                     break;
                 case "ISSUING_AIRLINE_NUMERIC_CODE":
-                    data.IssuingAirlineNumericCode = entry.Value;
+                    data.IssuingAirlineNumericCode = value;
                     break;
                 case "TO_CITY_AIRPORT_CODE_SECONDARY":
-                    data.ToCityAirportCodeSecondary = entry.Value;
+                    data.ToCityAirportCodeSecondary = value;
                     break;
                 case "DOCUMENT_FORM_SERIAL_NUMBER":
-                    data.DocumentFormSerialNumber = entry.Value;
+                    data.DocumentFormSerialNumber = value;
                     break;
                 case "SELECTEE_INDICATOR_SECONDARY":
-                    data.SelecteeIndicatorSecondary = entry.Value;
+                    data.SelecteeIndicatorSecondary = value;
                     break;
                 case "DATE_OF_BIRTH":
-                    data.DateOfBirth = entry.Value;
+                    data.DateOfBirth = value;
                     break;
                 case "RESERVATION_NUMBER":
-                    data.ReservationNumber = entry.Value;
+                    data.ReservationNumber = value;
                     break;
                 case "OPERATIONAL_PROGRAM_VALIDATION":
-                    data.OperationalProgramValidation = entry.Value;
+                    data.OperationalProgramValidation = value;
                     break;
                 case "DPNA_REFERENCE_NUMBER":
-                    data.DpnaReferenceNumber = entry.Value;
+                    data.DpnaReferenceNumber = value;
                     break;
                 case "INTERNAL_USE":
-                    data.InternalUse = entry.Value;
+                    data.InternalUse = value;
                     break;
                 case "AIRLINE_DESIGNATOR_OF_ISSUER_SECONDARY":
-                    data.AirlineDesignatorOfIssuerSecondary = entry.Value;
+                    data.AirlineDesignatorOfIssuerSecondary = value;
                     break;
                 case "DOCUMENT_CHECK_DIGIT":
-                    data.DocumentCheckDigit = entry.Value;
+                    data.DocumentCheckDigit = value;
                     break;
                 case "BOARDING_PASS_ISSUANCE_SOURCE_SECONDARY":
-                    data.BoardingPassIssuanceSourceSecondary = entry.Value;
+                    data.BoardingPassIssuanceSourceSecondary = value;
                     break;
                 case "DOCUMENT_TYPE_SECONDARY":
-                    data.DocumentTypeSecondary = entry.Value;
+                    data.DocumentTypeSecondary = value;
                     break;
                 case "FREQUENT_FLYER_COMPARTMENT_CODE":
-                    data.FrequentFlyerCompartmentCode = entry.Value;
+                    data.FrequentFlyerCompartmentCode = value;
                     break;
                 case "SOURCE_OF_BOARDING_PASS_ISSUANCE_SECONDARY":
-                    data.SourceOfBoardingPassIssuanceSecondary = entry.Value;
+                    data.SourceOfBoardingPassIssuanceSecondary = value;
                     break;
                 case "FREQUENT_FLYER_AIRLINE_DESIGNATOR_SECONDARY":
-                    data.FrequentFlyerAirlineDesignatorSecondary = entry.Value;
+                    data.FrequentFlyerAirlineDesignatorSecondary = value;
                     break;
                 case "FREQUENT_FLYER_NUMBER_SECONDARY":
-                    data.FrequentFlyerNumberSecondary = entry.Value;
+                    data.FrequentFlyerNumberSecondary = value;
                     break;
                 case "ID_AD_INDICATOR_SECONDARY":
-                    data.IdAdIndicatorSecondary = entry.Value;
+                    data.IdAdIndicatorSecondary = value;
                     break;
             }
         }
