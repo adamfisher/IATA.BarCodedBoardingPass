@@ -16,9 +16,11 @@
     <IsAotCompatible>true</IsAotCompatible>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <!-- Legacy IataData members are undocumented; remove once they are. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="IATA.BarCodedBoardingPass.Test" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />

@@ -1,116 +1,117 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using IATA.BarCodedBoardingPass.Internal;
 
 namespace IATA.BarCodedBoardingPass;
 
+/// <summary>
+/// Decodes IATA Bar Coded Boarding Pass (BCBP) strings into a dictionary or an <see cref="IataData"/>.
+/// </summary>
+/// <remarks>
+/// Only the first leg of a multi-leg boarding pass is returned.
+/// </remarks>
 public static class IataParser
 {
-    private static readonly Dictionary<string, IataFormat> IataFormatDictionary = new()
-    {
+    private const string EmptyField = "(empty field)";
+
+    private sealed record Field(
+        string Explanation,
+        Func<BcbpLayout, LegLayout?, FieldSpan> Select,
+        Action<IataData, string>? Assign);
+
+    private static FieldSpan None(BcbpLayout pass, LegLayout? leg) => FieldSpan.Missing;
+
+    private static readonly Field[] Fields =
+    [
         // Mandatory
-        { "BEGINNING_OF_MANDATORY_FIELDS", new IataFormat { Length = 0, Offset = 0, Content = "Mandatory Fields", Explanation = "Mandatory Fields" } },
-        { "FORMAT_CODE", new IataFormat { Length = 1, Offset = 1, Content = "S|M", Explanation = "Format Code" } },
-        { "NUMBER_OF_SEGMENTS", new IataFormat { Length = 1, Offset = 2, Content = "[1-4]", Explanation = "Number of Legs Encoded" } },
-        { "PASSENGER_NAME", new IataFormat { Length = 20, Offset = 22, Content = "", Explanation = "Passenger Name" } },
-        { "ELECTRONIC_TICKET_INDICATOR", new IataFormat { Length = 1, Offset = 23, Content = "E", Explanation = "Electronic Ticket Indicator" } },
-        { "OPERATING_CARRIER_PNR_CODE", new IataFormat { Length = 7, Offset = 30, Content = "", Explanation = "Operating Carrier PNR Code" } },
-        { "FROM_CITY_AIRPORT_CODE", new IataFormat { Length = 3, Offset = 33, Content = "", Explanation = "From City Airport Code" } },
-        { "TO_CITY_AIRPORT_CODE", new IataFormat { Length = 3, Offset = 36, Content = "", Explanation = "To City Airport Code" } },
-        { "OPERATING_CARRIER_DESIGNATOR", new IataFormat { Length = 3, Offset = 39, Content = "", Explanation = "Operating Carrier Designator" } },
-        { "FLIGHT_NUMBER", new IataFormat { Length = 5, Offset = 44, Content = "", Explanation = "Flight Number" } },
-        { "DATE_OF_FLIGHT", new IataFormat { Length = 3, Offset = 47, Content = "[0-9]{3}", Explanation = "Date of Flight (Julian Date)" } },
-        { "COMPARTMENT_CODE", new IataFormat { Length = 1, Offset = 48, Content = "[A-Z]", Explanation = "Compartment Code" } },
-        { "SEAT_NUMBER", new IataFormat { Length = 4, Offset = 52, Content = "", Explanation = "Seat Number" } },
-        { "CHECK_IN_SEQUENCE_NUMBER", new IataFormat { Length = 5, Offset = 57, Content = "", Explanation = "Check-in Sequence Number" } },
-        { "PASSENGER_STATUS", new IataFormat { Length = 1, Offset = 58, Content = "[0-9A-Z]", Explanation = "Passenger Status" } },
-        { "CONDITIONALS_SIZE", new IataFormat { Length = 2, Offset = 60, Content = "[0-F]{2}", Explanation = "Field size of variable field (Conditional + Airline item 4)" } },
-		
-		// Conditional
-		{ "BEGINNING_OF_VERSION_NUMBER", new IataFormat { Length = 1, Offset = 61, Content = "GREATER_THAN", Explanation = "Beginning of version number" } },
-        { "VERSION_NUMBER", new IataFormat { Length = 1, Offset = 62, Content = "[1-5]", Explanation = "Version number" } },
-        { "UNIQUE_CONDITIONALS_SIZE", new IataFormat { Length = 2, Offset = 64, Content = "[0-F]{2}", Explanation = "Field size of following structured message - unique" } },
-        { "PASSENGER_DESCRIPTION", new IataFormat { Length = 1, Offset = 65, Content = "[0-9A-Z\\s]", Explanation = "Passenger Description" } },
-        { "SOURCE_OF_CHECK_IN", new IataFormat { Length = 1, Offset = 66, Content = "[WKRMOTV\\s]", Explanation = "Source of check-in" } },
-        { "SOURCE_OF_BOARDING_PASS_ISSUANCE", new IataFormat { Length = 1, Offset = 67, Content = "[WKXRMOTV\\s]", Explanation = "Source of Boarding Pass Issuance" } },
-        { "DATE_OF_PASS_ISSUANCE", new IataFormat { Length = 4, Offset = 71, Content = "[0-9]{4}", Explanation = "Date of Issue of Boarding Pass (Julian Date)" } },
-        { "DOCUMENT_TYPE", new IataFormat { Length = 1, Offset = 72, Content = "B|I", Explanation = "Document Type" } },
-        { "AIRLINE_DESIGNATOR_OF_ISSUER", new IataFormat { Length = 3, Offset = 75, Content = "", Explanation = "Airline Designator of boarding pass issuer" } },
-        { "BAGGAGE_TAG_LICENSE_PLATE", new IataFormat { Length = 13, Offset = 88, Content = "", Explanation = "Baggage Tag License Plate Number (s)" } },
-        { "FIRST_BAGGAGE_TAG_LICENSE_PLATE", new IataFormat { Length = 13, Offset = 101, Content = "", Explanation = "1st Non-Consecutive Baggage Tag License Plate Number" } },
-        { "SECOND_BAGGAGE_TAG_LICENSE_PLATE", new IataFormat { Length = 13, Offset = 114, Content = "", Explanation = "2nd Non-Consecutive Baggage Tag License Plate Number" } },
-        { "REPEATED_CONDITIONALS_SIZE", new IataFormat { Length = 2, Offset = 116, Content = "[0-F]{2}", Explanation = "Field size of following structured message - repeated" } },
-        { "AIRLINE_NUMERIC_CODE", new IataFormat { Length = 3, Offset = 119, Content = "[0-9]{3}", Explanation = "Airline Numeric Code" } },
-        { "SERIAL_NUMBER", new IataFormat { Length = 10, Offset = 129, Content = "", Explanation = "Document Form/Serial Number" } },
-        { "SELECTEE_INDICATOR", new IataFormat { Length = 1, Offset = 130, Content = "[\\s0-1]", Explanation = "Selectee Indicator" } },
-        { "INTERNATIONAL_DOCUMENT_VERIFICATION", new IataFormat { Length = 1, Offset = 131, Content = "[\\s0-2]", Explanation = "International Document Verification" } },
-        { "MARKETING_CARRIER_DESIGNATOR", new IataFormat { Length = 3, Offset = 134, Content = "", Explanation = "Marketing Carrier Designator" } },
-        { "FREQUENT_FLYER_AIRLINE_DESIGNATOR", new IataFormat { Length = 3, Offset = 137, Content = "", Explanation = "Frequent Flyer Airline Designator" } },
-        { "FREQUENT_FLYER_NUMBER", new IataFormat { Length = 16, Offset = 153, Content = "", Explanation = "Frequent Flyer Number" } },
-        { "ID_AD_INDICATOR", new IataFormat { Length = 1, Offset = 154, Content = "[\\s0-1]", Explanation = "ID/AD Indicator" } },
-        { "FREE_BAGGAGE_ALLOWANCE", new IataFormat { Length = 3, Offset = 157, Content = "", Explanation = "Free Baggage Allowance" } },
-        { "FAST_TRACK", new IataFormat { Length = 1, Offset = 160, Content = "[\\s0-1]", Explanation = "Fast Track" } },
-        { "AIRLINE_DESIGNATOR_OF_SECOND_CARRIER", new IataFormat { Length = 3, Offset = 161, Content = "", Explanation = "Airline Designator of Second Carrier" } },
-        { "SECOND_CARRIER_DESIGNATOR_ACTION_CODE", new IataFormat { Length = 1, Offset = 164, Content = "", Explanation = "Second Carrier Designator Action Code" } },
-        { "SECOND_CARRIER_NUMBER", new IataFormat { Length = 7, Offset = 165, Content = "", Explanation = "Second Carrier Number" } },
-        { "BOARDING_PASS_ISSUANCE_SOURCE", new IataFormat { Length = 1, Offset = 172, Content = "[XWORM\\s]", Explanation = "Boarding Pass Issuance Source" } },
-        { "ISSUING_AIRLINE_NUMERIC_CODE", new IataFormat { Length = 3, Offset = 175, Content = "[0-9]{3}", Explanation = "Issuing Airline Numeric Code" } },
-        { "TO_CITY_AIRPORT_CODE_SECONDARY", new IataFormat { Length = 3, Offset = 178, Content = "", Explanation = "To City Airport Code - Secondary" } },
-        { "DOCUMENT_FORM_SERIAL_NUMBER", new IataFormat { Length = 10, Offset = 191, Content = "", Explanation = "Document Form/Serial Number (MCO/MPD)" } },
-        { "SELECTEE_INDICATOR_SECONDARY", new IataFormat { Length = 1, Offset = 201, Content = "[\\s0-1]", Explanation = "Selectee Indicator - Secondary" } },
-        { "DATE_OF_BIRTH", new IataFormat { Length = 4, Offset = 202, Content = "[0-9]{4}", Explanation = "Date of Birth (Julian Date)" } },
-        { "RESERVATION_NUMBER", new IataFormat { Length = 8, Offset = 206, Content = "", Explanation = "Reservation Number" } },
-        { "OPERATIONAL_PROGRAM_VALIDATION", new IataFormat { Length = 1, Offset = 214, Content = "[\\s0-9A-Z]", Explanation = "Operational Program Validation" } },
-        { "DPNA_REFERENCE_NUMBER", new IataFormat { Length = 7, Offset = 215, Content = "", Explanation = "DPNA Reference Number" } },
-        { "INTERNAL_USE", new IataFormat { Length = 1, Offset = 222, Content = "[\\s0-9A-Z]", Explanation = "Internal Use" } },
-        { "AIRLINE_DESIGNATOR_OF_ISSUER_SECONDARY", new IataFormat { Length = 3, Offset = 223, Content = "", Explanation = "Airline Designator of Issuer - Secondary" } },
-        { "DOCUMENT_CHECKDIGIT", new IataFormat { Length = 1, Offset = 226, Content = "[0-9]", Explanation = "Document Check Digit" } },
-        { "BOARDING_PASS_ISSUANCE_SOURCE_SECONDARY", new IataFormat { Length = 1, Offset = 227, Content = "[WXMORT\\s]", Explanation = "Boarding Pass Issuance Source - Secondary" } },
-        { "DOCUMENT_TYPE_SECONDARY", new IataFormat { Length = 1, Offset = 228, Content = "B|I", Explanation = "Document Type - Secondary" } },
-        { "SOURCE_OF_BOARDING_PASS_ISSUANCE_SECONDARY", new IataFormat { Length = 1, Offset = 229, Content = "[WXMORT\\s]", Explanation = "Source of Boarding Pass Issuance - Secondary" } },
-        { "FREQUENT_FLYER_AIRLINE_DESIGNATOR_SECONDARY", new IataFormat { Length = 3, Offset = 232, Content = "", Explanation = "Frequent Flyer Airline Designator - Secondary" } },
-        { "FREQUENT_FLYER_NUMBER_SECONDARY", new IataFormat { Length = 16, Offset = 248, Content = "", Explanation = "Frequent Flyer Number - Secondary" } },
-        { "ID_AD_INDICATOR_SECONDARY", new IataFormat { Length = 1, Offset = 249, Content = "[\\s0-1]", Explanation = "ID/AD Indicator - Secondary" } }
-    };
+        new("Mandatory Fields", None, (d, v) => d.BeginningOfMandatoryFields = v),
+        new("Format Code", (p, _) => p.FormatCode, (d, v) => d.FormatCode = v),
+        new("Number of Legs Encoded", (p, _) => p.NumberOfLegs, (d, v) => d.NumberOfSegments = v),
+        new("Passenger Name", (p, _) => p.PassengerName, (d, v) => d.PassengerName = v),
+        new("Electronic Ticket Indicator", (p, _) => p.ElectronicTicketIndicator, (d, v) => d.ElectronicTicketIndicator = v),
+        new("Operating Carrier PNR Code", (_, l) => l?.OperatingCarrierPnrCode ?? FieldSpan.Missing, (d, v) => d.OperatingCarrierPnrCode = v),
+        new("From City Airport Code", (_, l) => l?.FromCityAirportCode ?? FieldSpan.Missing, (d, v) => d.FromCityAirportCode = v),
+        new("To City Airport Code", (_, l) => l?.ToCityAirportCode ?? FieldSpan.Missing, (d, v) => d.ToCityAirportCode = v),
+        new("Operating Carrier Designator", (_, l) => l?.OperatingCarrierDesignator ?? FieldSpan.Missing, (d, v) => d.OperatingCarrierDesignator = v),
+        new("Flight Number", (_, l) => l?.FlightNumber ?? FieldSpan.Missing, (d, v) => d.FlightNumber = v),
+        new("Date of Flight (Julian Date)", (_, l) => l?.DateOfFlight ?? FieldSpan.Missing, (d, v) => d.DateOfFlight = v),
+        new("Compartment Code", (_, l) => l?.CompartmentCode ?? FieldSpan.Missing, (d, v) => d.CompartmentCode = v),
+        new("Seat Number", (_, l) => l?.SeatNumber ?? FieldSpan.Missing, (d, v) => d.SeatNumber = v),
+        new("Check-in Sequence Number", (_, l) => l?.CheckInSequenceNumber ?? FieldSpan.Missing, (d, v) => d.CheckInSequenceNumber = v),
+        new("Passenger Status", (_, l) => l?.PassengerStatus ?? FieldSpan.Missing, (d, v) => d.PassengerStatus = v),
+        new("Field size of variable field (Conditional + Airline item 4)", (_, l) => l?.ConditionalsSize ?? FieldSpan.Missing, (d, v) => d.ConditionalsSize = v),
+
+        // Conditional
+        new("Conditional Fields", None, null),
+        new("Version number", (p, _) => p.VersionNumber, (d, v) => d.VersionNumber = v),
+        new("Field size of following structured message - unique", (p, _) => p.UniqueConditionalsSize, (d, v) => d.UniqueConditionalsSize = v),
+        new("Passenger Description", (p, _) => p.PassengerDescription, (d, v) => d.PassengerDescription = v),
+        new("Source of check-in", (p, _) => p.SourceOfCheckIn, (d, v) => d.SourceOfCheckIn = v),
+        new("Source of Boarding Pass Issuance", (p, _) => p.SourceOfBoardingPassIssuance, (d, v) => d.SourceOfBoardingPassIssuance = v),
+        new("Date of Issue of Boarding Pass (Julian Date)", (p, _) => p.DateOfIssue, (d, v) => d.DateOfPassIssuance = v),
+        new("Document Type", (p, _) => p.DocumentType, (d, v) => d.DocumentType = v),
+        new("Airline Designator of boarding pass issuer", (p, _) => p.AirlineDesignatorOfIssuer, (d, v) => d.AirlineDesignatorOfIssuer = v),
+        new("Baggage Tag License Plate Number (s)", (p, _) => p.BaggageTagLicensePlate, (d, v) => d.BaggageTagLicensePlate = v),
+        new("1st Non-Consecutive Baggage Tag License Plate Number", (p, _) => p.FirstNonConsecutiveBaggageTagLicensePlate, (d, v) => d.FirstBaggageTagLicensePlate = v),
+        new("2nd Non-Consecutive Baggage Tag License Plate Number", (p, _) => p.SecondNonConsecutiveBaggageTagLicensePlate, (d, v) => d.SecondBaggageTagLicensePlate = v),
+        new("Field size of following structured message - repeated", (_, l) => l?.RepeatedConditionalsSize ?? FieldSpan.Missing, (d, v) => d.RepeatedConditionalsSize = v),
+        new("Airline Numeric Code", (_, l) => l?.AirlineNumericCode ?? FieldSpan.Missing, (d, v) => d.AirlineNumericCode = v),
+        new("Document Form/Serial Number", (_, l) => l?.DocumentFormSerialNumber ?? FieldSpan.Missing, (d, v) => d.SerialNumber = v),
+        new("Selectee Indicator", (_, l) => l?.SelecteeIndicator ?? FieldSpan.Missing, (d, v) => d.SelecteeIndicator = v),
+        new("International Document Verification", (_, l) => l?.InternationalDocumentVerification ?? FieldSpan.Missing, (d, v) => d.InternationalDocumentVerification = v),
+        new("Marketing Carrier Designator", (_, l) => l?.MarketingCarrierDesignator ?? FieldSpan.Missing, (d, v) => d.MarketingCarrierDesignator = v),
+        new("Frequent Flyer Airline Designator", (_, l) => l?.FrequentFlyerAirlineDesignator ?? FieldSpan.Missing, (d, v) => d.FrequentFlyerAirlineDesignator = v),
+        new("Frequent Flyer Number", (_, l) => l?.FrequentFlyerNumber ?? FieldSpan.Missing, (d, v) => d.FrequentFlyerNumber = v),
+        new("ID/AD Indicator", (_, l) => l?.IdAdIndicator ?? FieldSpan.Missing, (d, v) => d.IdAdIndicator = v),
+        new("Free Baggage Allowance", (_, l) => l?.FreeBaggageAllowance ?? FieldSpan.Missing, (d, v) => d.FreeBaggageAllowance = v),
+        new("Fast Track", (_, l) => l?.FastTrack ?? FieldSpan.Missing, (d, v) => d.FastTrack = v),
+
+        // The remaining keys are not IATA BCBP items. They are kept so existing dictionary
+        // consumers still find them, but they are always empty.
+        new("Airline Designator of Second Carrier", None, null),
+        new("Second Carrier Designator Action Code", None, null),
+        new("Second Carrier Number", None, null),
+        new("Boarding Pass Issuance Source", None, null),
+        new("Issuing Airline Numeric Code", None, null),
+        new("To City Airport Code - Secondary", None, null),
+        new("Document Form/Serial Number (MCO/MPD)", None, null),
+        new("Selectee Indicator - Secondary", None, null),
+        new("Date of Birth (Julian Date)", None, null),
+        new("Reservation Number", None, null),
+        new("Operational Program Validation", None, null),
+        new("DPNA Reference Number", None, null),
+        new("Internal Use", None, null),
+        new("Airline Designator of Issuer - Secondary", None, null),
+        new("Document Check Digit", None, null),
+        new("Boarding Pass Issuance Source - Secondary", None, null),
+        new("Document Type - Secondary", None, null),
+        new("Source of Boarding Pass Issuance - Secondary", None, null),
+        new("Frequent Flyer Airline Designator - Secondary", None, null),
+        new("Frequent Flyer Number - Secondary", None, null),
+        new("ID/AD Indicator - Secondary", None, null),
+    ];
 
     /// <summary>
     /// Returns a dictionary of decoded information based on an IATA barcode.
     /// </summary>
     /// <param name="barcode">The barcode in IATA format.</param>
-    /// <returns>The dictionary of decoded data.</returns>
+    /// <returns>
+    /// The decoded data keyed by field description. Values keep their space padding; a field
+    /// that is present but blank is <c>"(empty field)"</c> and a field that is not present is empty.
+    /// </returns>
     /// <exception cref="IataParsingException">Thrown when a parsing error occurs.</exception>
     public static IDictionary<string, string> Decode(string barcode)
     {
-        var data = new Dictionary<string, string>(IataFormatDictionary.Count);
+        var data = new Dictionary<string, string>(Fields.Length);
 
-        try
+        if (!BcbpLayout.TryRead(barcode, out var layout, out var error))
         {
-            foreach (var entry in IataFormatDictionary)
-            {
-                var key = entry.Key;
-                var iataFormatObject = entry.Value;
-                var value = GetEachValue(barcode, iataFormatObject);
-
-                switch (key)
-                {
-                    case "BEGINNING_OF_MANDATORY_FIELDS":
-                        data.Add("Mandatory Fields", string.Empty);
-                        break;
-                    case "BEGINNING_OF_VERSION_NUMBER":
-                        data.Add("Conditional Fields", string.Empty);
-                        break;
-                    case "BEGINNING_OF_SECURITY_DATA":
-                        data.Add("Security Fields", string.Empty);
-                        break;
-                    default:
-                        data.Add(iataFormatObject.Explanation, value);
-                        break;
-                }
-            }
+            throw new IataParsingException(barcode, data, error.ToException());
         }
-        catch (Exception ex)
+
+        var leg = layout.Legs.Count > 0 ? layout.Legs[0] : null;
+
+        foreach (var field in Fields)
         {
-            throw new IataParsingException(barcode, data, ex);
+            data.Add(field.Explanation, Format(field.Select(layout, leg), barcode));
         }
 
         return data;
@@ -120,222 +121,25 @@ public static class IataParser
     /// Returns a strongly typed model of decoded information based on an IATA barcode.
     /// </summary>
     /// <param name="barcode">The barcode in IATA format.</param>
-    /// <returns>The model containing the decoded data.</returns>
+    /// <returns>The model containing the decoded data, with values trimmed.</returns>
     /// <exception cref="IataParsingException">Thrown when a parsing error occurs.</exception>
     public static IataData DecodeObject(string barcode)
     {
         var dictionary = Decode(barcode);
         var data = new IataData();
 
-        foreach (var entry in dictionary)
+        foreach (var field in Fields)
         {
-            var key = IataFormatDictionary.FirstOrDefault(d => d.Value.Explanation == entry.Key).Key;
-
-            if (key == null)
-            {
-                continue;
-            }
-
-            var value = entry.Value?.Trim();
-
-            switch (key)
-            {
-                case "BEGINNING_OF_MANDATORY_FIELDS":
-                    data.BeginningOfMandatoryFields = value;
-                    break;
-                case "FORMAT_CODE":
-                    data.FormatCode = value;
-                    break;
-                case "NUMBER_OF_SEGMENTS":
-                    data.NumberOfSegments = value;
-                    break;
-                case "PASSENGER_NAME":
-                    data.PassengerName = value;
-                    break;
-                case "ELECTRONIC_TICKET_INDICATOR":
-                    data.ElectronicTicketIndicator = value;
-                    break;
-                case "OPERATING_CARRIER_PNR_CODE":
-                    data.OperatingCarrierPnrCode = value;
-                    break;
-                case "FROM_CITY_AIRPORT_CODE":
-                    data.FromCityAirportCode = value;
-                    break;
-                case "TO_CITY_AIRPORT_CODE":
-                    data.ToCityAirportCode = value;
-                    break;
-                case "OPERATING_CARRIER_DESIGNATOR":
-                    data.OperatingCarrierDesignator = value;
-                    break;
-                case "FLIGHT_NUMBER":
-                    data.FlightNumber = value;
-                    break;
-                case "DATE_OF_FLIGHT":
-                    data.DateOfFlight = value;
-                    break;
-                case "COMPARTMENT_CODE":
-                    data.CompartmentCode = value;
-                    break;
-                case "SEAT_NUMBER":
-                    data.SeatNumber = value;
-                    break;
-                case "CHECK_IN_SEQUENCE_NUMBER":
-                    data.CheckInSequenceNumber = value;
-                    break;
-                case "PASSENGER_STATUS":
-                    data.PassengerStatus = value;
-                    break;
-                case "CONDITIONALS_SIZE":
-                    data.ConditionalsSize = value;
-                    break;
-                case "BEGINNING_OF_VERSION_NUMBER":
-                    data.BeginningOfVersionNumber = value;
-                    break;
-                case "VERSION_NUMBER":
-                    data.VersionNumber = value;
-                    break;
-                case "UNIQUE_CONDITIONALS_SIZE":
-                    data.UniqueConditionalsSize = value;
-                    break;
-                case "PASSENGER_DESCRIPTION":
-                    data.PassengerDescription = value;
-                    break;
-                case "SOURCE_OF_CHECK_IN":
-                    data.SourceOfCheckIn = value;
-                    break;
-                case "SOURCE_OF_BOARDING_PASS_ISSUANCE":
-                    data.SourceOfBoardingPassIssuance = value;
-                    break;
-                case "DATE_OF_PASS_ISSUANCE":
-                    data.DateOfPassIssuance = value;
-                    break;
-                case "DOCUMENT_TYPE":
-                    data.DocumentType = value;
-                    break;
-                case "AIRLINE_DESIGNATOR_OF_ISSUER":
-                    data.AirlineDesignatorOfIssuer = value;
-                    break;
-                case "BAGGAGE_TAG_LICENSE_PLATE":
-                    data.BaggageTagLicensePlate = value;
-                    break;
-                case "FIRST_BAGGAGE_TAG_LICENSE_PLATE":
-                    data.FirstBaggageTagLicensePlate = value;
-                    break;
-                case "SECOND_BAGGAGE_TAG_LICENSE_PLATE":
-                    data.SecondBaggageTagLicensePlate = value;
-                    break;
-                case "REPEATED_CONDITIONALS_SIZE":
-                    data.RepeatedConditionalsSize = value;
-                    break;
-                case "AIRLINE_NUMERIC_CODE":
-                    data.AirlineNumericCode = value;
-                    break;
-                case "SERIAL_NUMBER":
-                    data.SerialNumber = value;
-                    break;
-                case "SELECTEE_INDICATOR":
-                    data.SelecteeIndicator = value;
-                    break;
-                case "INTERNATIONAL_DOCUMENT_VERIFICATION":
-                    data.InternationalDocumentVerification = value;
-                    break;
-                case "MARKETING_CARRIER_DESIGNATOR":
-                    data.MarketingCarrierDesignator = value;
-                    break;
-                case "FREQUENT_FLYER_AIRLINE_DESIGNATOR":
-                    data.FrequentFlyerAirlineDesignator = value;
-                    break;
-                case "FREQUENT_FLYER_NUMBER":
-                    data.FrequentFlyerNumber = value;
-                    break;
-                case "ID_AD_INDICATOR":
-                    data.IdAdIndicator = value;
-                    break;
-                case "FREE_BAGGAGE_ALLOWANCE":
-                    data.FreeBaggageAllowance = value;
-                    break;
-                case "FAST_TRACK":
-                    data.FastTrack = value;
-                    break;
-                case "AIRLINE_DESIGNATOR_OF_SECOND_CARRIER":
-                    data.AirlineDesignatorOfSecondCarrier = value;
-                    break;
-                case "SECOND_CARRIER_DESIGNATOR_ACTION_CODE":
-                    data.SecondCarrierDesignatorActionCode = value;
-                    break;
-                case "SECOND_CARRIER_NUMBER":
-                    data.SecondCarrierNumber = value;
-                    break;
-                case "BOARDING_PASS_ISSUANCE_SOURCE":
-                    data.BoardingPassIssuanceSource = value;
-                    break;
-                case "ISSUING_AIRLINE_NUMERIC_CODE":
-                    data.IssuingAirlineNumericCode = value;
-                    break;
-                case "TO_CITY_AIRPORT_CODE_SECONDARY":
-                    data.ToCityAirportCodeSecondary = value;
-                    break;
-                case "DOCUMENT_FORM_SERIAL_NUMBER":
-                    data.DocumentFormSerialNumber = value;
-                    break;
-                case "SELECTEE_INDICATOR_SECONDARY":
-                    data.SelecteeIndicatorSecondary = value;
-                    break;
-                case "DATE_OF_BIRTH":
-                    data.DateOfBirth = value;
-                    break;
-                case "RESERVATION_NUMBER":
-                    data.ReservationNumber = value;
-                    break;
-                case "OPERATIONAL_PROGRAM_VALIDATION":
-                    data.OperationalProgramValidation = value;
-                    break;
-                case "DPNA_REFERENCE_NUMBER":
-                    data.DpnaReferenceNumber = value;
-                    break;
-                case "INTERNAL_USE":
-                    data.InternalUse = value;
-                    break;
-                case "AIRLINE_DESIGNATOR_OF_ISSUER_SECONDARY":
-                    data.AirlineDesignatorOfIssuerSecondary = value;
-                    break;
-                case "DOCUMENT_CHECK_DIGIT":
-                    data.DocumentCheckDigit = value;
-                    break;
-                case "BOARDING_PASS_ISSUANCE_SOURCE_SECONDARY":
-                    data.BoardingPassIssuanceSourceSecondary = value;
-                    break;
-                case "DOCUMENT_TYPE_SECONDARY":
-                    data.DocumentTypeSecondary = value;
-                    break;
-                case "FREQUENT_FLYER_COMPARTMENT_CODE":
-                    data.FrequentFlyerCompartmentCode = value;
-                    break;
-                case "SOURCE_OF_BOARDING_PASS_ISSUANCE_SECONDARY":
-                    data.SourceOfBoardingPassIssuanceSecondary = value;
-                    break;
-                case "FREQUENT_FLYER_AIRLINE_DESIGNATOR_SECONDARY":
-                    data.FrequentFlyerAirlineDesignatorSecondary = value;
-                    break;
-                case "FREQUENT_FLYER_NUMBER_SECONDARY":
-                    data.FrequentFlyerNumberSecondary = value;
-                    break;
-                case "ID_AD_INDICATOR_SECONDARY":
-                    data.IdAdIndicatorSecondary = value;
-                    break;
-            }
+            field.Assign?.Invoke(data, dictionary[field.Explanation].Trim());
         }
 
         return data;
     }
 
-    private static string GetEachValue(string input, IataFormat iataFormatObject)
+    private static string Format(FieldSpan field, string barcode) => field switch
     {
-        if (iataFormatObject.Offset <= input.Length && input.Length <= 158) // because of airline's var field, see below
-        {
-            var tmp = input.Substring(iataFormatObject.Offset - iataFormatObject.Length, iataFormatObject.Length);
-            return tmp.Trim().Length == 0 ? "(empty field)" : tmp;
-        }
-        return string.Empty;
-    }
+        { IsPresent: false } => string.Empty,
+        _ when field.Slice(barcode).IsWhiteSpace() => EmptyField,
+        _ => field.ToRawString(barcode)!,
+    };
 }
