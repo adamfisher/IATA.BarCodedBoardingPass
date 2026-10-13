@@ -6,7 +6,9 @@ namespace IATA.BarCodedBoardingPass;
 /// Decodes IATA Bar Coded Boarding Pass (BCBP) strings into a dictionary or an <see cref="IataData"/>.
 /// </summary>
 /// <remarks>
-/// Only the first leg of a multi-leg boarding pass is returned.
+/// Only the first leg of a multi-leg boarding pass is returned. New code should use
+/// <see cref="BoardingPass.Parse(string, DateOnly?)"/>, which returns every leg, typed values
+/// and dates, and can encode the pass again.
 /// </remarks>
 public static class IataParser
 {
