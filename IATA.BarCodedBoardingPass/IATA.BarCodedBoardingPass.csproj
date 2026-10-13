@@ -2,15 +2,16 @@
 
   <PropertyGroup>
     <PackageId>IATA.BarCodedBoardingPass</PackageId>
-    <Version>2016.06.07</Version>
+    <Version>2026.10.12</Version>
     <Authors>Adam Fisher</Authors>
-    <Description>A parser for International Air Transport Association (IATA) barcodes from a passenger boarding pass.</Description>
+    <Description>Parses and encodes IATA Bar Coded Boarding Pass (BCBP) data, Resolution 792 up to version 8: every leg, conditional items, security data, typed values and dates.</Description>
     <PackageProjectUrl>https://github.com/adamfisher/IATA.BarCodedBoardingPass</PackageProjectUrl>
     <RepositoryUrl>https://github.com/adamfisher/IATA.BarCodedBoardingPass</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageIcon>iata_logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>iata;iata boarding pass;bcbp;boarding pass</PackageTags>
+    <PackageTags>iata;iata boarding pass;bcbp;boarding pass;resolution 792;pdf417;aztec;airline</PackageTags>
+    <PackageReleaseNotes>Version 8 support (passenger descriptions X and U). New typed BoardingPass API with Parse/TryParse and Encode. Fixes decoding of passes longer than 158 characters, multi-leg passes, and short conditional sections. Now targets .NET 10.</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsAotCompatible>true</IsAotCompatible>
