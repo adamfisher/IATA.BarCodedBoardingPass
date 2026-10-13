@@ -1,5 +1,3 @@
-using FluentAssertions;
-using Xunit.Categories;
 
 namespace IATA.BarCodedBoardingPass.Test
 {
@@ -65,12 +63,11 @@ namespace IATA.BarCodedBoardingPass.Test
         }
 
         [Theory]
-        [UnitTest]
         [MemberData(nameof(GetBoardingPasses))]
         public void Decode(string barcode, IataData expectedResult)
         {
-            var expectedValues = expectedResult.GetProperties().Select(p => 
-                (string) expectedResult.GetPropertyValue(p.Name)).Where(p => p != null).ToList();
+            var expectedValues = typeof(IataData).GetProperties()
+                .Select(p => (string?)p.GetValue(expectedResult)).Where(p => p != null).ToList();
 
             var result = IataParser.Decode(barcode);
 
@@ -79,7 +76,6 @@ namespace IATA.BarCodedBoardingPass.Test
         }
 
         [Theory]
-        [UnitTest]
         [MemberData(nameof(GetBoardingPasses))]
         public void DecodeObject(string barcode, IataData expectedResult)
         {
@@ -87,10 +83,10 @@ namespace IATA.BarCodedBoardingPass.Test
 
             result.Should().BeEquivalentTo(expectedResult, options => options
                 // Ignore properties containing null or whitespace
-                .Excluding(p => (result.GetPropertyValue(p.Name) as string).IsNullOrWhiteSpace())
+                .Excluding(p => string.IsNullOrWhiteSpace(typeof(IataData).GetProperty(p.Name)!.GetValue(result) as string))
                 // Override string comparison to trim extra whitespace from the result
                 .Using<string>(ctx => 
-                    ctx.Subject.Trim().Should().BeEquivalentTo(ctx.Expectation.Trim())).WhenTypeIs<string>());
+                    ctx.Subject!.Trim().Should().BeEquivalentTo(ctx.Expectation!.Trim())).WhenTypeIs<string>());
         }
     }
 }

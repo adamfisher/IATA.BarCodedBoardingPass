@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="IATA.BarCodedBoardingPass/IATA.BarCodedBoardingPass.csproj" />
+  <Project Path="IATA.BarCodedBoardingPass.Test/IATA.BarCodedBoardingPass.Test.csproj" />
+</Solution>
