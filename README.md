@@ -1,54 +1,141 @@
-#  [![](https://raw.githubusercontent.com/adamfisher/IATA.BarCodedBoardingPass/main/IATA.BarcodedBoardingPass/iata_logo.png)](#) IATA.BarCodedBoardingPass
+#  [![](https://raw.githubusercontent.com/adamfisher/IATA.BarCodedBoardingPass/main/IATA.BarCodedBoardingPass/iata_logo.png)](#) IATA.BarCodedBoardingPass
 
 [![Nuget](https://img.shields.io/nuget/dt/IATA.BarCodedBoardingPass?color=blue&label=nuget&style=plastic)](https://www.nuget.org/packages/IATA.BarCodedBoardingPass)
+[![CI](https://github.com/adamfisher/IATA.BarCodedBoardingPass/actions/workflows/ci.yml/badge.svg)](https://github.com/adamfisher/IATA.BarCodedBoardingPass/actions/workflows/ci.yml)
 
-A C# parser for International Air Transport Association (IATA) barcodes from a passenger boarding pass.
+A .NET library that parses and encodes International Air Transport Association (IATA) Bar Coded Boarding Passes (BCBP): the text inside the PDF417, Aztec, QR or Data Matrix barcode on a boarding pass.
 
-⚠️ Based on BCBP(BAR CODE BOARDING PASS)- [BCBP-Implementation-Guide-5th-Edition-June-2016](https://www.iata.org/contentassets/1dccc9ed041b4f3bbdcf8ee8682e75c4/2021_03_02-bcbp-implementation-guide-version-7-.pdf)
+- Implements [IATA Resolution 792](https://www.iata.org/en/programs/passenger/common-use/) up to **version 8**, including the version 8 passenger descriptions `X` (unspecified) and `U` (undisclosed)
+- Reads every leg of multi-leg passes, conditional items, airline data and security data
+- Tolerates the trailing spaces that scanners and copy/paste often strip
+- Encodes passes back to BCBP text
+- Targets .NET 10
 
-**Ported from [menepet/iata-barcode-js-parser](https://github.com/menepet/iata-barcode-js-parser).**
+## Install
 
-The security field (after 158 chars barcode length) is a separate field that enables a third party to verify that the bar code data was not tampered with. The security field is optional and to be used only when required by the local security administration. Typically, this field may contain a digital signature of variable length, the length of the field and a type of security data (that defines the algorithm used). IATA is only providing the structure for the signature to be stored in the bar code. The bar code data (mandatory, optional and individual airline use fields) remain unchanged and can be read regardless of the digital signature.
+```
+dotnet add package IATA.BarCodedBoardingPass
+```
 
-## Usage
-
-You can decode barcodes into a dictionary or a strongly typed object type called `IataData`:
+## Parse
 
 ```csharp
-var barcodeData = "M1MICHEL/GEORGE       E6C2KLS ATHTORAC 1903 0114 185Y009A0013 147>218  W    B                29";
+using IATA.BarCodedBoardingPass;
 
-// Get data in dictionary format
-var result = IataParser.Decode(barcodeData);
-var passengerName = result["Passenger Name"];
-// ... and so on...
+var pass = BoardingPass.Parse("M1DESMARAIS/LUC       EABC123 YULFRAAC 0834 226F001A0025 106>60000");
 
-// Get data in object format
-var data = IataParser.DecodeObject(barcodeData);
+var leg = pass.Legs[0];
+Console.WriteLine($"{pass.LastName}, {pass.FirstName}");                     // DESMARAIS, LUC
+Console.WriteLine($"{leg.OperatingCarrier}{leg.FlightNumber} {leg.FromAirport}-{leg.ToAirport}"); // AC0834 YUL-FRA
+Console.WriteLine($"{leg.FlightDate:yyyy-MM-dd} seat {leg.SeatNumber}");    // e.g. 2026-08-14 seat 001A
+```
 
-/*
-Data object containing fields like:
+`TryParse` returns `false` instead of throwing, and both methods accept a `string` or a `ReadOnlySpan<char>`:
+
+```csharp
+if (BoardingPass.TryParse(scannedText, out var pass))
 {
-	BaggageTagLicensePlate = " B ",
-	CheckInSequenceNumber = "Y009A",
-	CompartmentCode = "4",
-	ConditionalsSize = "01",
-	DateOfFlight = "011",
-	DateOfPassIssuance = "18 ",
-	DocumentType = "W",
-	ElectronicTicketIndicator = "E",
-	FlightNumber = "1903 ",
-	FormatCode = "M",
-	FromCityAirportCode = "ATH",
-	OperatingCarrierDesignator = "AC ",
-	OperatingCarrierPnrCode = "6C2KLS ",
-	PassengerDescription = "7",
-	PassengerName = "MICHEL/GEORGE ",
-	PassengerStatus = "0",
-	SeatNumber = " 185",
-	SourceOfBoardingPassIssuance = "2",
-	SourceOfCheckIn = ">",
-	ToCityAirportCode = "TOR",
-	UniqueConditionalsSize = "14"
+    // ...
 }
-*/
+```
+
+`Parse` throws a `BarcodedBoardingPassFormatException` whose `Position` says where the text stopped looking like a boarding pass.
+
+### What you get
+
+| Member | Type | Notes |
+|---|---|---|
+| `PassengerName`, `LastName`, `FirstName` | `string?` | |
+| `Legs` | `IReadOnlyList<FlightLeg>` | PNR, airports, carrier, flight number, `FlightDate`, compartment, seat, check-in sequence, frequent flyer, baggage allowance, `FastTrack`, airline data… |
+| `PassengerDescription` | `PassengerDescription?` | `Adult`, `Male`, `Female`, `Child`, `Infant`, …, `Unspecified`, `Undisclosed` |
+| `CheckInSource`, `IssuanceSource`, `DocumentType` | enums | |
+| `IssueDate` | `DateOnly?` | |
+| `BaggageTagNumber` and the two non-consecutive tags | `string?` | |
+| `Version` | `int?` | Version of the standard the pass was encoded with |
+| `Security` | `SecurityData?` | Type and data, e.g. a digital signature |
+
+Text values have their trailing padding removed and are otherwise unchanged (`"001A"`, `"0834"`). Values that are blank or not encoded are `null`. Enum values are the characters used in the barcode, so a code the library doesn't name is kept: `(PassengerDescription)'9'`.
+
+### Dates
+
+The barcode stores only the day of the year for the flight date, and only the last digit of the year for the issue date. The year is worked out like this:
+
+- **Issue date:** the latest matching date that is not after the reference date.
+- **Flight date:** the first matching day on or after the issue date. If the pass has no issue date, the matching day nearest the reference date.
+
+The reference date defaults to today (UTC). Pass the scan date when parsing older passes:
+
+```csharp
+var pass = BoardingPass.Parse(text, referenceDate: new DateOnly(2016, 12, 31));
+```
+
+## Encode
+
+Boarding passes are immutable records. Use `with` to change a pass and `Encode()` to turn it back into BCBP text:
+
+```csharp
+var moved = pass with { Legs = [pass.Legs[0] with { SeatNumber = "014C" }] };
+string barcode = moved.Encode();
+```
+
+Or build one from scratch:
+
+```csharp
+var pass = new BoardingPass
+{
+    PassengerName = "DESMARAIS/LUC",
+    PassengerDescription = PassengerDescription.Undisclosed,
+    Legs =
+    [
+        new FlightLeg
+        {
+            OperatingCarrierPnrCode = "ABC123",
+            FromAirport = "YUL",
+            ToAirport = "FRA",
+            OperatingCarrier = "AC",
+            FlightNumber = "0834",
+            FlightDate = new DateOnly(2020, 8, 13),
+            CompartmentCode = 'F',
+            SeatNumber = "001A",
+            CheckInSequenceNumber = "0025",
+            PassengerStatus = '1',
+        },
+    ],
+};
+
+pass.Encode(); // M1DESMARAIS/LUC       EABC123 YULFRAAC 0834 226F001A0025 107>801U00
+```
+
+Conditional items without a value at the end of a section are left out. A pass that has conditional items but no `Version` is encoded as version 8. `TryFormat(Span<char>, out int)` encodes without allocating.
+
+## `IataParser` (original API)
+
+The original dictionary and `IataData` API is still available. It now uses the same parser, so it reads long, multi-leg and version 8 passes correctly. It still returns only the first leg, with values padded as encoded:
+
+```csharp
+var result = IataParser.Decode(barcode);
+var passengerName = result["Passenger Name"];   // "DESMARAIS/LUC       "
+
+var data = IataParser.DecodeObject(barcode);    // trimmed values
+```
+
+A field that is present but blank is `"(empty field)"`. A field that is not in the barcode is an empty string.
+
+## Standards
+
+- [IATA Resolution 792](https://www.iata.org/en/programs/passenger/common-use/) version 8 took effect on 1 June 2020. Its only change from version 7 is the passenger description codes `X` and `U`.
+- [BCBP Implementation Guide, version 7 (PDF)](https://www.iata.org/contentassets/1dccc9ed041b4f3bbdcf8ee8682e75c4/2021_03_02-bcbp-implementation-guide-version-7-.pdf)
+
+## Acknowledgements
+
+Originally inspired by [georgesmith46/bcbp](https://github.com/georgesmith46/bcbp) and ported from [menepet/iata-barcode-js-parser](https://github.com/menepet/iata-barcode-js-parser). The tests include sample passes from [bcbp](https://github.com/georgesmith46/bcbp) and [BoardingPassKit](https://github.com/anomaddev/BoardingPassKit), both MIT licensed.
+
+## Building
+
+Requires the .NET 10 SDK.
+
+```
+dotnet build
+dotnet test
+dotnet pack IATA.BarCodedBoardingPass -c Release
 ```
